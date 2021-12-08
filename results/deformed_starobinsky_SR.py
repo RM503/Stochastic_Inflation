@@ -54,11 +54,11 @@ def back_evolve(phi_in, efolds):
 
     return phi, phi_M
 
-@numba.njit
-def field_correlations(I, phi, dphi, efolds):
-    N_end = efolds
+@numba.njit(parallel=True)
+def field_correlations(I, phi_, dphi_, efolds_):
+    N_end = efolds_
     N = np.linspace(0, N_end, int(N_end/dN))
-    phi_bg = phi; dphi_bg = dphi #background evolution relabelled
+    phi_bg = phi_; dphi_bg = dphi_ #background evolution relabelled
     
     eps1 = 0.5*dphi_bg**2
     H = sqrt(V(phi_bg)/(3 - eps1))
@@ -95,7 +95,7 @@ def field_correlations(I, phi, dphi, efolds):
             dphi_cg[j+1] = dphi_cg[j] + 0.5*(l1 + l2)
             
         delphi = phi_cg - phi_bg
-        delphi2 = delphi2 + delphi**2
+        delphi2 += delphi**2
         
     delphi2 = delphi2/I
     
@@ -112,7 +112,4 @@ if __name__ == "__main__":
     
     tf = time.time()
     print(tf-ti)
-    
-    plt.plot(N, delphi2)
-    plt.yscale('log')
-    plt.show()
+  
