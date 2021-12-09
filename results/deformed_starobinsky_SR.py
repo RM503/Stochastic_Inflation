@@ -45,9 +45,9 @@ def back_evolve(phi_in, efolds):
 
     for i in range(n-1):
         K1 = dN*phi_M[i]
-        L1 = dN*( -3*phi_M[i] + 0.5*phi_M[i]**3 - (3 - phi_M[i]**2)*dV(phi[i])/V(phi[i]) )
+        L1 = dN*( -3*phi_M[i] + 0.5*phi_M[i]**3 - (3 - 0.5*phi_M[i]**2)*dV(phi[i])/V(phi[i]) )
         K2 = dN*(phi_M[i] + L1)
-        L2 = dN*( -3*(phi_M[i] + L1) + 0.5*(phi_M[i] + L1)**3 - (3 - (phi_M[i] + L1)**2)*dV(phi[i] + K1)/V(phi[i] + K1) )
+        L2 = dN*( -3*(phi_M[i] + L1) + 0.5*(phi_M[i] + L1)**3 - (3 - 0.5*(phi_M[i] + L1)**2)*dV(phi[i] + K1)/V(phi[i] + K1) )
         
         phi[i+1] = phi[i] + 0.5*(K1 + K2)
         phi_M[i+1] = phi_M[i] + 0.5*(L1 + L2)
@@ -86,14 +86,14 @@ def field_correlations(I, phi_, dphi_, efolds_):
         for j in range(len(N)-1):
             
             k1 = dN*dphi_cg[j] + (dN*F[j] - S[j]*sqrt(dN))*H[j]/(2*np.pi)
-            l1 = dN*( -3*dphi_cg[j] + 0.5*dphi_cg[j]**3 - (3 - dphi_cg[j]**2)*dV(phi_cg[j])/V(phi_cg[j]) )
+            l1 = dN*( -3*dphi_cg[j] + 0.5*dphi_cg[j]**3 - (3 - 0.5*dphi_cg[j]**2)*dV(phi_cg[j])/V(phi_cg[j]) )
             k2 = dN*(dphi_cg[j] + l1) + (dN*F[j] + S[j]*sqrt(dN))*H[j+1]/(2*np.pi)
-            l2 = dN*( -3*(dphi_cg[j] + l1) + 0.5*(dphi_cg[j] + l1)**3 - (3 - (dphi_cg[j] + l1)**2) \
+            l2 = dN*( -3*(dphi_cg[j] + l1) + 0.5*(dphi_cg[j] + l1)**3 - (3 - 0.5*(dphi_cg[j] + l1)**2) \
                      *dV(phi_cg[j] + k1)/V(phi_cg[j] + k1) )
             
             phi_cg[j+1] = phi_cg[j] + 0.5*(k1 + k2)
             dphi_cg[j+1] = dphi_cg[j] + 0.5*(l1 + l2)
-            
+
         delphi = phi_cg - phi_bg
         delphi2 += delphi**2
         
@@ -104,12 +104,30 @@ def field_correlations(I, phi_, dphi_, efolds_):
 if __name__ == "__main__":
     
     ti = time.time()
+
+    print("Starting operation!")
     
     N_end = 70
     N = np.linspace(0, N_end, int(N_end/dN))
     phi_bg, dphi_bg = back_evolve(5.82, N_end)
-    delphi2 = field_correlations(10**5, phi_bg, dphi_bg, N_end)
+    nsim = 10**5
+    delphi2 = field_correlations(nsim, phi_bg, dphi_bg, N_end)
+    
+    eps1 = 0.5*dphi_bg**2
+    eps2 = np.gradient(eps1, dN)/eps1
+    H = sqrt(V(phi_bg)/(3-eps1))
+    d_delphi2 = np.gradient(delphi2, dN)
+    P_zeta_stochastic = ( 0.5/(eps1*(1-eps1)) )*(d_delphi2 - eps2*delphi2) #Stochastic power spectrum
+    P_zeta = H**2 /(8*np.pi**2 *eps1) #Power spectrum (standard calculation in slow-roll)
+
+    #np.savetxt('Deformed_Starobinsky_SR_delphi2_1million.txt', np.transpose([N, delphi2]))
+    #np.savetxt('Deformed_Starobinsky_SR_Pzeta_1million.txt', np.transpose([N, P_zeta_stochastic, P_zeta]))
     
     tf = time.time()
-    print(tf-ti)
-  
+    print("Code execution time for " + str(nsim) + "simulations: " + str(tf-ti) + " seconds.")
+
+    plt.scatter(N, P_zeta_stochastic, s=2)
+    plt.plot(N, P_zeta, c='r')
+    plt.yscale('log')
+    plt.show()
+
