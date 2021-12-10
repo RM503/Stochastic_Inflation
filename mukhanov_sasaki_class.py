@@ -1,18 +1,36 @@
 import numpy as np
 #import numba 
 
-class mukhanov_sasaki():
+class mukhanov_sasaki:
+    '''
+    Python class for numerically solving the Mukhanov-Sasaki equation beyond slow-roll
+    approximations. 
 
-    def __init__(self, k, N, a, phi, dphi, V, ddV):
+    Input parameters:
+    k - comoving wavenumber of perturbation mode (scalar)
+    N - efolds (array)
+    a - scale factor (array)
+    phi - background evolution of inflaton (array)
+    dphi - background evolution of inflaton conjugate momentum (array)
+    V - inflaton potential (array)
+    '''
+    def __init__(self, k, N, a, phi, dphi, V):
         self.k = k
         self.N = N 
         self.a = a
         self.phi = phi 
         self.dphi = dphi 
         self.V = V
-        self.ddV = ddV 
 
     def efold_bounds(self):
+        '''
+        This method computes the efold times for which the modes are evolved. Defining
+        the comoving horizon to be aH, the sub and superhorizon limits are given by
+        100aH and 0.01aH. The function returns Nii and Nff which are efolds for which
+        the sub and superhorizon conditions are satisfied for a given value of k. The
+        function returns the real and imaginary components of the Mukhanov variable
+        (uk and vk) and their efold derivatives (duk and dvk).
+        '''
         H = np.sqrt( self.V/(3-0.5*self.dphi**2) )
         horizon = self.a*H 
         initial = 100*horizon 
@@ -26,6 +44,10 @@ class mukhanov_sasaki():
         return Nii, Nff 
 
     def mode_evolve(self):
+        '''
+        This method computes the evolution of inflaton modes from Nii to Nff by solving
+        the Mukhanov-Sasaki equation using fourth order Runge-Kutta (RK4) method.  
+        '''
         dN = self.N[1] - self.N[0]
         eps1 = 0.5*self.dphi**2
         eps2 = np.gradient(eps1, dN)/eps1 
@@ -41,6 +63,7 @@ class mukhanov_sasaki():
         uk = np.zeros(n); duk = np.zeros(n)
         vk = np.zeros(n); dvk = np.zeros(n)
 
+        #Bunch-Davies vacuum conditions
         uk[0] = 1/np.sqrt(2*self.k); duk[0] = 0
         vk[0] = 0; dvk[0] = -np.sqrt(self.k)/(0.01*np.sqrt(2)*self.k)
 
