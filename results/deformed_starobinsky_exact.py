@@ -77,7 +77,7 @@ def field_correlations(I, phi_, dphi_, eps_, eta_, d_eps_, d_eta_, efolds_):
     d_eta = d_eta_ 
     H = sqrt(potential/(3-eps1))
 
-    sigma = 10**-2 #set coarse-graining scale by k_sigma = sigma a*H
+    sigma = 5*10**-3 #set coarse-graining scale by k_sigma = sigma a*H
     NN = 10**4 #observable scale set an N=10, corresponding to point 10000 in efold grid
     N_run = np.linspace(0, 60, int(60/dN))
     delphi2 = np.zeros(len(N_run))
@@ -128,8 +128,8 @@ def field_correlations(I, phi_, dphi_, eps_, eta_, d_eps_, d_eta_, efolds_):
         F = np.random.randn(len(N_run))/sqrt(dN)
         S = np.random.choice(np.array([-1, 1]), len(N_run))
 
-        phi_cg = np.zeros(N_run)
-        dphi_cg = np.zeros(N_run)
+        phi_cg = np.zeros(len(N_run))
+        dphi_cg = np.zeros(len(N_run))
         phi_cg[0] = 5.51
         dphi_cg[0] = -dV(phi_cg[0])/V(phi_cg[0])
 
@@ -152,3 +152,34 @@ def field_correlations(I, phi_, dphi_, eps_, eta_, d_eps_, d_eta_, efolds_):
 
     delphi2 = delphi2/I 
     delpi2 = delpi2/I
+
+    return delphi2
+
+if __name__ == "__main__":
+
+    ti = time.time()
+
+    print("Starting operation!")
+
+    N_end = 70
+    N = np.linspace(0, N_end, int(N_end/dN))
+    phi_bg, dphi_bg = back_evolve(5.82, N_end)
+    potential = V(phi_bg)
+    eps1 = 0.5*dphi_bg**2
+    eps2 = np.gradient(eps1, dN)/eps1 
+    eta = eps1 - 0.5*eps2 
+    d_eps = np.gradient(eps1, dN)
+    d_eta = np.gradient(eta, dN)
+
+    n_sim = 10**5
+    delphi2 = field_correlations(n_sim, phi_bg, dphi_bg, eps1, eta, d_eps, d_eta, N_end)
+    d_delphi2 = np.gradient(delphi2, dN)
+    NN = 10**4
+    P_zeta_stochastic = ( 0.5/(eps1[NN:]*(1-eps1[NN:])) )*(d_delphi2 - eps2[NN:]*delphi2)
+
+    tf = time.time()
+    print("Code execution time for " + str(n_sim) + "simulations: " + str(tf-ti) + " seconds.")
+
+    #plt.scatter(N, P_zeta_stochastic, s=2)
+    #plt.yscale('log')
+    #plt.show()
